@@ -1,0 +1,259 @@
+type Query {
+      user: User
+      users: [User]!
+      product(id: ID!): Product
+      products: [Product]!
+      profile: Profile
+      currentAddress: CurrentAddress
+      hometownAddress: HometownAddress
+      carts: [CartItem]!
+      contact: Contact!
+      brands: [Brand]!
+      categories: [Category]!
+      bankAccounts:[Bank]!
+      banners: [Banner]!
+},
+
+#**************************8User Mutation***************************************************
+type Mutation {
+      signup(username: String!, email: String!, password: String!): User
+      login(email: String, password: String): AuthData
+      requestResetPassword(email: String!): Message!
+
+      createBankAccount(
+            bankName: String!
+            accountName: String!
+            accountNo: String!
+            qrcodeUrl: String!
+      ): Bank!
+
+      createProduct(
+            name: String!
+            description: String!
+            price: Float!
+            imageUrl: String!
+      ): Product!
+
+      updateProduct(
+            id: ID!
+            name: String
+            description: String
+            price: Float
+            imageUrl: String
+      ): Product!
+      deleteProduct(id: ID!): Product!
+
+      createProfile(
+            firstname: String!
+            lastname: String!
+            birthdate: String!
+            age: Int!
+            gender: String!
+            mentalStatus: String!
+            profileImage: String!
+            coverImage: String!
+      ): Profile!
+
+      createContact(
+            type: String!
+            contactNo: String!
+            conditionEmail1: String!
+            conditionEmail2: String!
+      ): Contact!
+
+      createCurrentAddress(
+            address1: String
+            address2: String
+            village: String!
+            city: String!
+            province: String!
+      ): CurrentAddress!
+
+      createHometownAddress(
+            address1: String
+            address2: String
+            village: String!
+            city: String!
+            province: String!
+      ): HometownAddress!
+
+       createUserBrand(name: String!, logo: String!): Brand!
+       createUserCategory(name: String!, imageUrl: String!): Category!
+      addToCart(
+            id: ID! #ID! From Product ID
+      ): CartItem!
+      deleteCart(id: ID!): CartItem!
+
+
+      #Website  Parials
+      createBanner(
+            name: String!
+            title: String!
+            description: String!
+            imageUrl: String!
+      ): Banner!
+},
+
+
+#User Information to Database
+type User {
+      id: ID!
+      username: String!
+      email: String!
+      contact: Contact
+      categories: [Category]
+      brands: [Brand]
+      products: [Product]
+      carts: [CartItem]
+      profile: Profile
+      currentAddress: CurrentAddress
+      hometownAddress: HometownAddress
+      bankAccounts: [Bank]
+      createdAt: Date!
+}
+
+#Contact Type
+type Contact {
+      id: ID!
+      type: String!
+      contactNo: String!
+      conditionEmail1: String!
+      conditionEmail2: String!
+}
+#Brands
+type Brand {
+      id: ID!
+      name: String!
+      logo: String!
+      products: [Product]!
+      user: User!
+      createdAt: Date!
+}
+
+#Category
+type Category {
+      id: ID!
+      name: String!
+      imageUrl: String!
+      products: [Product]!
+      user: User!
+      createdAt: Date!
+}
+
+type Product {
+      id: ID!
+      name: String!
+      brand: Brand
+      category: Category
+      description: String!
+      price: Float!
+      qty: Int!
+      imageUrl: String!
+      user: User!
+      createdAt: Date!
+}
+
+#Scalar Date
+scalar Date
+
+#Cart Product Type
+type CartItem {
+      id: ID!
+      product: Product!
+      qualtity: Int!
+      user: User!
+      createdAt: Date!
+}
+
+#Authorization data
+type AuthData {
+      user: User
+      jwt: String
+}
+
+type Message {
+      message: String!
+}
+#User Profile
+type Profile {
+      id: ID!
+      firstname: String!
+      lastname: String!
+      birthdate: Date!
+      age: Int!
+      gender: String!
+      mentalStatus: String!
+      profileImage: String!
+      coverImage: String!
+      user: User!
+      createAt: Date!
+}
+
+#Address
+type CurrentAddress {
+      id: ID!
+      address1: String!
+      address2: String!
+      village: String!
+      city: String!
+      province: String!
+}
+
+#Address
+type HometownAddress {
+      id: ID!
+      address1: String
+      address2: String
+      village: String!
+      city: String!
+      province: String!
+}
+
+#Province
+# type Province {
+#       id: ID!
+#       name: String!
+#       city: [District]!
+# }
+
+#District
+# type District {
+#       id: ID!
+#       name: String!
+#       vilages: [Village]!
+# }
+
+#Type Vilage
+# type Village {
+#       id: ID!
+#       name: String!
+# }
+
+#Type Checkout
+type CheckOut {
+      id: ID!
+      cart: CartItem!
+      total_price: Float!
+      payWith: Bank!
+      shipper: User!
+      reciever: User!
+      createAt: Date!
+}
+
+type Bank {
+      id: ID!
+      bankName: String!
+      accountName: String!
+      accountNo: String!
+      qrcodeUrl: String!
+}
+
+#Website Banner
+type Banner {
+    name: String!
+    title: String!
+    description: String!
+    imageUrl: String!
+    user: User!
+    createdAt: Date!
+}
