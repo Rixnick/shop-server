@@ -10,9 +10,9 @@ type Query {
       contact: Contact!
       brands: [Brand]!
       categories: [Category]!
-      bankAccounts:[Bank]!
+      bankAccounts: [Bank]!
       banners: [Banner]!
-},
+}
 
 #**************************8User Mutation***************************************************
 type Mutation {
@@ -31,6 +31,7 @@ type Mutation {
             name: String!
             description: String!
             price: Float!
+            stockqty: Int!
             imageUrl: String!
       ): Product!
 
@@ -42,6 +43,10 @@ type Mutation {
             imageUrl: String
       ): Product!
       deleteProduct(id: ID!): Product!
+    
+      createOrder(amount: Float!, cardId: String, token: String): Order
+        
+
 
       createProfile(
             firstname: String!
@@ -77,13 +82,12 @@ type Mutation {
             province: String!
       ): HometownAddress!
 
-       createUserBrand(name: String!, logo: String!): Brand!
-       createUserCategory(name: String!, imageUrl: String!): Category!
+      createUserBrand(name: String!, logo: String!): Brand!
+      createUserCategory(name: String!, imageUrl: String!): Category!
       addToCart(
             id: ID! #ID! From Product ID
       ): CartItem!
       deleteCart(id: ID!): CartItem!
-
 
       #Website  Parials
       createBanner(
@@ -92,8 +96,7 @@ type Mutation {
             description: String!
             imageUrl: String!
       ): Banner!
-},
-
+}
 
 #User Information to Database
 type User {
@@ -104,12 +107,59 @@ type User {
       categories: [Category]
       brands: [Brand]
       products: [Product]
-      carts: [CartItem]
+      carts: [CartItem]!
+      orders: [Order]!
+      cards: [Card]!
       profile: Profile
       currentAddress: CurrentAddress
       hometownAddress: HometownAddress
       bankAccounts: [Bank]
       createdAt: Date!
+}
+
+# OrderItem Type
+type OrderItem {
+      id: ID!
+      product: Product!
+      qualtity: Int!
+      user: User!
+      createdAt: Date!
+}
+
+# BillAddress Type
+type BillAddress {
+    id: ID!
+    fullname: String!
+    address: String!
+    city: String!
+    province: String!
+    contact: String!
+    postcode: String!
+    createdAt: Date!
+}
+
+
+# Order type
+type Order {
+      id: ID!
+      user: User!
+      items: [OrderItem!]!
+    #   bills:[BillAddress]!
+      createdAt: Date!
+}
+
+#Type Card for  Credit Information
+type Card {
+    id: ID!
+    cardInfo: CardInfo 
+}
+
+type CardInfo{
+    id: ID!
+    expiration_month: Int!
+    expiration_year: Int!
+    brand: String!
+    last_digits:String!
 }
 
 #Contact Type
@@ -147,7 +197,7 @@ type Product {
       category: Category
       description: String!
       price: Float!
-      qty: Int!
+      stockqty: Int!
       imageUrl: String!
       user: User!
       createdAt: Date!
@@ -232,11 +282,15 @@ type HometownAddress {
 #Type Checkout
 type CheckOut {
       id: ID!
+      fullname: String!
+      address: String!
+      city: String!
+      province: String!
+      postcode: String!
       cart: CartItem!
       total_price: Float!
       payWith: Bank!
-      shipper: User!
-      reciever: User!
+      user: User!
       createAt: Date!
 }
 
@@ -250,10 +304,10 @@ type Bank {
 
 #Website Banner
 type Banner {
-    name: String!
-    title: String!
-    description: String!
-    imageUrl: String!
-    user: User!
-    createdAt: Date!
+      name: String!
+      title: String!
+      description: String!
+      imageUrl: String!
+      user: User!
+      createdAt: Date!
 }

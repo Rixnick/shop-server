@@ -1,84 +1,102 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-      username: {
+    username: {
             type: String,
             required: true,
-      },
-      email: {
+    },
+    email: {
             type: String,
             required: true,
             lowercase: true,
             trim: true,
-      },
-      password: {
+    },
+    password: {
             type: String,
             required: true,
             trim: true,
-      },
-      resetPasswordToken: {
+    },
+    resetPasswordToken: {
             type: String,
-      },
-      resetPasswordTokenExpiry: {
+    },
+    resetPasswordTokenExpiry: {
             type: Number,
-      },
-      brands: [
+    },
+    brands: [
             {
                   type: mongoose.Schema.Types.ObjectId,
                   ref: "Brand",
             },
-      ],
-      categories: [
+    ],
+    categories: [
             {
                   type: mongoose.Schema.Types.ObjectId,
                   ref: "Category",
             },
       ],
-      banners: [
+    banners: [
             {
                   type: mongoose.Schema.Types.ObjectId,
                   ref: "Banner",
             },
-      ],
-      products: [
+    ],
+    products: [
             {
                   type: mongoose.Schema.Types.ObjectId,
                   ref: "Product",
             },
-      ],
-      carts: [
+    ],
+    carts: [
             {
                   type: mongoose.Schema.Types.ObjectId,
                   ref: "Cart",
             },
-      ],
-      contact: {
+    ],
+    orders: [
+            {
+                  type: mongoose.Schema.Types.ObjectId,
+                  ref: "Order",
+            },
+    ],
+    cards: [
+            {
+                  id: String,
+                  cardInfo: {
+                        id: String,
+                        expiration_month: Number,
+                        expiration_year: Number,
+                        brand: String,
+                        last_digits: String
+                  },
+            },
+    ],
+    contact: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Contact",
-      },
-      profile: {
+    },
+    profile: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Profile",
-      },
-      currentAddress: {
+    },
+    currentAddress: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "CurrentAddress",
-      },
-      hometownAddress: {
+    },
+    hometownAddress: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "HometownAddress",
-      },
-      bankAccounts: [
+    },
+    bankAccounts: [
             {
                   type: mongoose.Schema.Types.ObjectId,
                   ref: "Bank",
             },
-      ],
-      createdAt: {
+    ],
+    createdAt: {
             type: Date,
             required: true,
             default: Date.now(),
-      },
+    },
 });
 
 const User = mongoose.model("User", userSchema);

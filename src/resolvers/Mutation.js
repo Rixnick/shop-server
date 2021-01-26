@@ -15,6 +15,16 @@ import BrandModel from "../models/BrandModel";
 import BankModel from "../models/BankModel";
 import CategoryModel from "../models/CategoryModel";
 import BannerModel from "../models/banner";
+import OrderItem from "../models/OrderItems";
+import Order from "../models/OrderModel";
+// import {
+//       createCharge,
+//       createCustomer,
+//       retrieveCustomer,
+// } from "../utils/stripeUtil";
+import { retrieveOmiseCustomer, createOmiseCustomer, createOmiseCharge} from '../utils/omiseUtil';
+
+
 
 //TODO:
 // 1. install sendgrid,
@@ -23,6 +33,8 @@ import BannerModel from "../models/banner";
 /**
  * Mutation user CUD to database
  */
+
+//  console.log("Stripe APi:", stripe)
 const Mutation = {
       signup: async (parent, args, context, info) => {
             //Check if not email
@@ -60,7 +72,15 @@ const Mutation = {
                   .populate({
                         path: "carts",
                         populate: { path: "product" },
-                  });
+                  })
+                  .populate({
+                    path: "orders",
+                    options: { sort: { createAt: "desc" } },
+                    populate: {
+                          path: "items",
+                          populate: { path: "product" },
+                    },
+              });
             if (!user) throw new Error("Email not found, Plz sign up...!");
 
             //Check Password
@@ -130,6 +150,7 @@ const Mutation = {
                   !args.name ||
                   !args.description ||
                   !args.price ||
+                  !args.stockqty ||
                   !args.imageUrl
             ) {
                   throw new Error("Plz, provide all required field...!");
@@ -521,6 +542,104 @@ const Mutation = {
                   populate: { path: "banners" },
             });
       },
+
+      /**
+       * *******************Create User Order *********************************************
+       */
+      createOrder: async (parent, { amount, cardId, token }, { userId }, info) => {
+        //Check User already login
+        if (!userId) throw new Error("Plz, login to proceed...!");
+
+        //Query User from data
+        const user = await UserModel.findById(userId).populate({
+              path: "carts",
+              populate: { path: "product" },
+        });
+
+        //create charge with Omise; -->user.cards[0] && user.cards[0].id
+        let customer 
+        //User use the existing card
+        if(cardId && !token){
+            const cust = await retrieveOmiseCustomer(cardId);
+            if(!cust) throw new Error('Cannot Processed payments')
+
+            customer = cust
+        }
+        //Create  Orders with new credits card 
+        if (token && !cardId) {
+              const newCustomer = await createOmiseCustomer(user.email, user.name, token);
+              if(!newCustomer) throw new Error('Cannot Process payments')
+              customer = newCustomer;
+
+              //Update user cards's fields
+              const {
+                    id,
+                    expiration_month,
+                    expiration_year,
+                    brand,
+                    last_digits,
+              } = newCustomer.cards.data[0];
+
+                const newCard = {
+                    id: newCustomer.id,
+                    cardInfo: {
+                          id,
+                          expiration_month,
+                          expiration_year,
+                          brand,
+                          last_digits,
+                    },
+              };
+              await UserModel.findByIdAndUpdate(userId, {
+                    cards: [newCard,...user.cards]
+              });
+        }
+
+        //create Charge
+        const charge = await createOmiseCharge(amount, customer.id);
+        if (!charge) throw new Error("Something went wrong with payment, Plz try again later...!");
+
+        //Convert CartItem to OrderItem;
+        const convertCartToOrder = async () => {
+              return Promise.all(
+                    user.carts.map((cart) =>
+                          OrderItem.create({
+                                product: cart.product,
+                                qualtity: cart.qualtity,
+                                user: cart.user,
+                          })
+                    )
+              );
+        };
+
+        //Create Order;
+        const orderItems = await convertCartToOrder();
+        const order = await Order.create({
+              user: userId,
+              items: orderItems.map((orderItem) => orderItem.id),
+        });
+
+        //Delete cartItem from the database;
+        const deleteCartItem = async () => {
+              return Promise.all(
+                    user.carts.map(cart =>
+                          Cart.findByIdAndRemove(cart.id)
+                    )
+              );
+        };
+        await deleteCartItem();
+
+        //Update User info in the database (Del  Item  from Cart then Add to Order);
+        await UserModel.findByIdAndUpdate(userId, {
+              carts: [],
+              orders: !user.orders ? [order.id] : [...user.orders, order.id],
+        });
+
+        //Return Order
+        return Order.findById(order.id)
+              .populate({ path: "user" })
+              .populate({ path: "items", populate: {path: 'product'} });
+  },
 };
 
 export default Mutation;

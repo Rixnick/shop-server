@@ -5,8 +5,8 @@ import ContactModel from "../models/BrandModel";
 import CurrentAddressModel from "../models/CurrentAddressModel";
 import HometownAddressModel from "../models/hometownAddressModel";
 import BrandModel from "../models/BrandModel";
-import CategoryModel from '../models/CategoryModel';
-import BannerModel from '../models/banner';
+import CategoryModel from "../models/CategoryModel";
+import BannerModel from "../models/banner";
 //Query user from the database
 const Query = {
       //Query User All information**********************************************
@@ -24,6 +24,14 @@ const Query = {
                         path: "carts",
                         options: { sort: { createdAt: "desc" } },
                         populate: { path: "product" },
+                  })
+                  .populate({
+                        path: "orders",
+                        options: { sort: { createAt: "desc" } },
+                        populate: {
+                              path: "items",
+                              populate: { path: "product" },
+                        },
                   })
                   .populate({ path: "profile" })
                   .populate({ path: "contact" })
@@ -92,24 +100,24 @@ const Query = {
                   path: "user",
                   populate: { path: "hometownAddress" },
             }),
-      brands: (parent, args, context, info) => 
+      brands: (parent, args, context, info) =>
             BrandModel.find().populate({
-                path: "user",
-                path: "products",
-                populate: { path: "user" },
+                  path: "user",
+                  path: "products",
+                  populate: { path: "user" },
             }),
-        categories:(parent, args, context, info) =>
+      categories: (parent, args, context, info) =>
             CategoryModel.find().populate({
-                path: "user",
-                path: "products",
-                populate: { path: "user" },
+                  path: "user",
+                  path: "products",
+                  populate: { path: "user" },
             }),
 
       banners: (parent, args, context, info) =>
-      BannerModel.find().populate({
-            path: "user",
-            options: { sort: { createdAt: "desc" } },
-            populate: { path: "banners" },
-      }),
+            BannerModel.find().populate({
+                  path: "user",
+                  options: { sort: { createdAt: "desc" } },
+                  populate: { path: "banners" },
+            }),
 };
 export default Query;
