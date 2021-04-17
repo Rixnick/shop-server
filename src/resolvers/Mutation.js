@@ -17,6 +17,7 @@ import CategoryModel from "../models/CategoryModel";
 import BannerModel from "../models/banner";
 import OrderItem from "../models/OrderItems";
 import Order from "../models/OrderModel";
+import CheckoutModel from "../models/CheckOutMOdel";
 // import {
 //       createCharge,
 //       createCustomer,
@@ -27,6 +28,7 @@ import {
   createOmiseCustomer,
   createOmiseCharge,
 } from "../utils/omiseUtil";
+import User from "../models/UserModel";
 
 //TODO:
 // 1. install sendgrid,
@@ -82,7 +84,8 @@ const Mutation = {
           path: "items",
           populate: { path: "product" },
         },
-      });
+      })
+      .populate({ path:"checkout" });
     if (!user) throw new Error("Email not found, Plz sign up...!");
 
     //Check Password
@@ -340,7 +343,7 @@ const Mutation = {
    */
   createUserBrand: async (parent, args, { userId }, info) => {
     if (!userId) throw new Error("Plz, login to proceed...!");
-    if (!args.name || !args.logo) {
+    if (!args.name || !args.desc || !args.logo) {
       throw new Error("Plz, Provider  requirement fields...!");
     }
     const brand = await BrandModel.create({ ...args, user: userId });
@@ -364,7 +367,7 @@ const Mutation = {
    */
   createUserCategory: async (parent, args, { userId }, info) => {
     if (!userId) throw new Error("Plz, login to proceed...!");
-    if (!args.name || !args.imageUrl) {
+    if (!args.name || !args.desc || !args.imageUrl) {
       throw new Error("Plz, Provider all required fields...!");
     }
 
@@ -438,9 +441,9 @@ const Mutation = {
       if (findCartItemIndex > -1) {
         //A. the new addToCart item is already Exist is Carts
         //A.1 Find the itemCart from databade /Update
-        const CartList = (user.carts[findCartItemIndex].qualtity += 1);
+        const CartList = (user.carts[findCartItemIndex].quantity += 1);
         await Cart.findByIdAndUpdate(user.carts[findCartItemIndex].id, {
-          qualtity: CartList,
+          quantity: CartList,
         }); //Get From Cart Item ID from index
 
         //A.2 Find Updated cartItem
@@ -455,7 +458,7 @@ const Mutation = {
         //B. the new addToCart is not in Cart yet
         const cartItem = await Cart.create({
           product: id,
-          qualtity: 1,
+          quantity: 1,
           user: userId,
         });
         //B.1 Create new cart
@@ -482,6 +485,7 @@ const Mutation = {
     const cart = await Cart.findById(id);
     //Check if user logged in
     if (!userId) throw new Error("Plz, Login to Process...!");
+
     const user = await UserModel.findById(userId);
 
     //Check Ownership CartItem
@@ -629,6 +633,113 @@ const Mutation = {
     return Order.findById(order.id)
       .populate({ path: "user" })
       .populate({ path: "items", populate: { path: "product" } });
+  },
+
+  createCheckout: async (parent, args, { userId }, info) => {
+    //Check User already login
+    if (!userId) throw new Error("Plz, login to proceed...!");
+    
+    //Create Checkout information
+    if (
+      !args.fullname ||
+      !args.address ||
+      !args.city ||
+      !args.province ||
+      !args.country ||
+      !args.contact ||
+      !args.postcode
+    ) {
+      throw new Error("Plz, Provider  requirement fields...!");
+    }
+    const checkout = await CheckoutModel.create({
+      ...args,
+      user: userId,
+    });
+
+    //Query User from data
+    const user = await UserModel.findById(userId);
+    
+    if(!user.checkout){
+      user.checkout = checkout;
+    }else{
+      user.checkouts.push(checkout);
+    }
+
+    await user.save();
+
+    return await CheckoutModel.findById(checkout.id).populate({path: "user", populate: { path: "checkout" }})
+  },
+
+  //Customer Check
+  custOrder: async (parent, args, { userId }, info) => {
+    
+    const { amount, checkoutId } = args;
+
+
+    //Check User already login
+    if (!userId) throw new Error("Plz, login to proceed...!");
+
+    //Query User from data
+    const user = await User.findById(userId).populate({
+      path: "carts",
+      populate: { path: "product" },
+    });
+
+    if (!user) throw new Error("Plz, Login to proceed...!");
+
+    //Find Checkout Id to proceed create customer Order NEXT
+    const checkout = await CheckoutModel.findById(checkoutId);
+
+    console.log("Checkout", checkout._id);
+
+    if (!checkout._id)
+      throw new Error("Plz, fill checkout information required...");
+
+    //Create bank charge
+
+    //Convert CartItem to OrderItem;
+    const convertCartToOrder = async () => {
+      return Promise.all(
+        user.carts.map((cart) =>
+          OrderItem.create({
+            product: cart.product,
+            quantity: cart.quantity,
+            user: cart.user,
+          })
+        )
+      );
+    };
+
+    //Create Order to database
+    const orderitemArr = await convertCartToOrder();
+
+    const order = await Order.create({
+      user: userId,
+      items: orderitemArr.map((orderItem) => orderItem.id),
+      checkout: checkoutId,
+      amount: amount
+    });
+
+    //Delete Cart Items from the database
+    const deleteCartItem = async () => {
+      return Promise.all(
+        user.carts.map((cart) => Cart.findByIdAndRemove(cart.id))
+      );
+    };
+
+    await deleteCartItem();
+
+    //Update User order in database
+    await User.findByIdAndUpdate(userId, {
+      checkout: checkoutId,
+      carts: [],
+      orders: !user.orders ? [order.id] : [...user.orders, order.id],
+    });
+
+    //return order
+    return await Order.findById(order.id)
+      .populate({ path: 'user' })
+      .populate({ path: 'items', populate: { path: 'product' }});
   },
 };
 

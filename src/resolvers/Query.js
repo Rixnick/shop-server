@@ -51,7 +51,8 @@ const Query = {
         path: "bankAccounts",
         options: { sort: { createAt: "desc" } },
         populate: "user",
-      }); //, populate: { path: "user" }
+      })
+      .populate({ path: "checkout" }); //, populate: { path: "user" }
   },
 
   users: (parent, args, context, info) =>
